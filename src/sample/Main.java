@@ -3,18 +3,13 @@ package sample;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Group;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.image.Image;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
-import javafx.scene.media.MediaView;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
-import java.io.File;
 import java.util.Vector;
 import java.util.concurrent.Semaphore;
 
@@ -30,11 +25,12 @@ public class Main extends Application{
     public static int portaEntrada = 850;
     public static int releaseAcumulados;
     public static Semaphore acessoVariaveaveisGlobais;
-
+    public static Semaphore javaFxAuxSemaphore;
 
     @Override
     public void start(Stage primaryStage) throws Exception{
         acessoVariaveaveisGlobais = new Semaphore(1, true);
+        javaFxAuxSemaphore = new Semaphore(1, true);
 
         System.setProperty("prism.lcdtext", "false");
         //TÍTULO DA JANELA

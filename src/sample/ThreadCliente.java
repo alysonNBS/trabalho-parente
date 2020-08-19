@@ -11,7 +11,9 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 
+import javax.swing.*;
 import java.io.File;
+import java.util.LinkedHashMap;
 import java.util.concurrent.Semaphore;
 import static java.lang.Math.abs;
 import static sample.Main.*;
@@ -27,6 +29,7 @@ public class ThreadCliente extends Thread{
     private double tempoCasaR;
     private double tempoBarR;
     private double tempoAnimacaoRecarga = 1;
+    private LinkedHashMap<String, Image> images = new LinkedHashMap<String, Image>();
     private Image barraStatus_b = new Image( "bstatus/Barra Bar.png" );
     private Image barraStatus_c = new Image( "bstatus/Barra Casa.png" );
     private TextArea logS;
@@ -239,7 +242,15 @@ public class ThreadCliente extends Thread{
         AnimacaoDeslocamento(xCadeira, 192, xCadeira, 300);
         AnimacaoDeslocamento(xCadeira, 300, xPorta, 300);
         AnimacaoDeslocamento(xPorta, 300, xPorta, 600);
-        ImageVC.setVisible(false);
+
+        try {
+            javaFxAuxSemaphore.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            ImageVC.setVisible(false);
+            javaFxAuxSemaphore.release();
+        }
     }
 
     private void AnimacaoSentarNoBarVindoEspera(){
@@ -270,7 +281,14 @@ public class ThreadCliente extends Thread{
             xEspera = CadeirasE.get(CadeiraE);
             acessoVariaveaveisGlobais.release();
         }
-        ImageVC.setVisible(true);
+        try {
+            javaFxAuxSemaphore.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            ImageVC.setVisible(true);
+            javaFxAuxSemaphore.release();
+        }
         AnimacaoDeslocamento(xEntrada, 600, xEntrada, 300);
         AnimacaoDeslocamento(xEntrada, 300, xEspera, 300);
         AnimacaoDeslocamento(xEspera, 300, xEspera, 380);
@@ -288,7 +306,14 @@ public class ThreadCliente extends Thread{
             xBar = CadeirasBX.get(CadeiraB);
             acessoVariaveaveisGlobais.release();
         }
-        ImageVC.setVisible(true);
+        try {
+            javaFxAuxSemaphore.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            ImageVC.setVisible(true);
+            javaFxAuxSemaphore.release();
+        }
         AnimacaoDeslocamento(xEntrada, 600, xEntrada, 300);
         AnimacaoDeslocamento(xEntrada, 300, xBar, 300);
         AnimacaoDeslocamento(xBar, 300, xBar, 192);
@@ -297,8 +322,11 @@ public class ThreadCliente extends Thread{
 
     //DECIDE QUAL SPRITE USAR DEPENDENDO DA CADEIRA
     public void sentarCadeira(){
-        String URL = "sprites/var"+nCliente+"/S/";
-        Image SPRITE = new Image(URL +"SF.png", 80,120,false,false);
+        String URL = "sprites/var"+nCliente+"/S/SF.png";
+        Image SPRITE;
+        if(!images.containsKey(URL))
+            images.put(URL, new Image(URL, 80,120,false,false));
+        SPRITE = images.get(URL);
         ImageVC.setImage(SPRITE);
     }
 
@@ -307,7 +335,10 @@ public class ThreadCliente extends Thread{
         //CARREGA A IMAGEM DO RESCPECTIVO BALÃO DO CLIENTE
         String urlI;
         urlI = "bstatus/" + idCliente + ".png";
-        Image balao = new Image( urlI );
+        Image balao;
+        if(!images.containsKey(urlI))
+            images.put(urlI, new Image( urlI ));
+        balao = images.get(urlI);
 
         //PREAPARA A BARRA DE STATUS BAR
         if(tb<=0)tb=0.01;
@@ -321,10 +352,17 @@ public class ThreadCliente extends Thread{
         PixelReader readerc = barraStatus_c.getPixelReader();
         WritableImage barraStatus_cc = new WritableImage(readerc, (int) (barraStatus_c.getWidth()*tc), (int) barraStatus_c.getHeight());
 
-        //DESENHA OS 3 NA TELA
-        gc.drawImage( balao, Xc, Yc);
-        gc.drawImage( barraStatus_bc, Xc, Yc);
-        gc.drawImage( barraStatus_cc, Xc, Yc);
+        try {
+            javaFxAuxSemaphore.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            //DESENHA OS 3 NA TELA
+            gc.drawImage(balao, Xc, Yc);
+            gc.drawImage(barraStatus_bc, Xc, Yc);
+            gc.drawImage(barraStatus_cc, Xc, Yc);
+            javaFxAuxSemaphore.release();
+        }
     }
 
     //ESPERA UM TEMPO EM SEGUNDOS
@@ -371,12 +409,21 @@ public class ThreadCliente extends Thread{
 
     //RESPONSÁVEL PELA ANIMAÇÃO DO DESLOCAMENTO LINEAR
     private void AnimacaoDeslocamento(int Xi, int Yi, int Xf, int Yf){
-        //DEFINE O TAMANHO DA VIEWPORT
-        ImageVC.setViewport(new Rectangle2D(OFFSET_X, OFFSET_Y, WIDTH, HEIGHT));
-        ImageVC.setSmooth(false);
         int dX;
         int dY;
         String URL;
+
+        try {
+            javaFxAuxSemaphore.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            //DEFINE O TAMANHO DA VIEWPORT
+            ImageVC.setViewport(new Rectangle2D(OFFSET_X, OFFSET_Y, WIDTH, HEIGHT));
+            ImageVC.setSmooth(false);
+
+            javaFxAuxSemaphore.release();
+        }
 
         //DEFINE O SPRITE A SER USADO (ESQUERDA, DIREITA, CIMA, BAIXO)
         if(Xi==Xf){
@@ -411,12 +458,24 @@ public class ThreadCliente extends Thread{
                 int n = tempoAtual % 2;
                 tempoAtual = (int)((timeNow - tempoI)/250000000.0);
                 tempoAtual2 = (int) ((timeNow - tempoI)/25000000.0);
-                //DEFINE A POSIÇÃO
-                ImageVC.setLayoutX(Xi+tempoAtual2*2*dX);
-                ImageVC.setLayoutY(Yi+tempoAtual2*2*dY);
-                //DEFINE O SPRITE A SER USADO (NÚMERO DO FRAME)
-                Image SPRITE = new Image(URL + n + ".png", 80,120,false,false);
-                ImageVC.setImage(SPRITE);
+
+                try {
+                    javaFxAuxSemaphore.acquire();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    //DEFINE A POSIÇÃO
+                    ImageVC.setLayoutX(Xi+tempoAtual2*2*dX);
+                    ImageVC.setLayoutY(Yi+tempoAtual2*2*dY);
+                    //DEFINE O SPRITE A SER USADO (NÚMERO DO FRAME)
+                    Image SPRITE;
+                    if(!images.containsKey(URL + n + ".png"))
+                        images.put(URL + n + ".png", new Image(URL + n + ".png", 80,120,false,false));
+                    SPRITE = images.get(URL + n + ".png");
+                    ImageVC.setImage(SPRITE);
+
+                    javaFxAuxSemaphore.release();
+                }
 
                 if(dX==0){
                     if(dY==-1){
@@ -441,18 +500,25 @@ public class ThreadCliente extends Thread{
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
     }
 
     //FAZ O UPDATE DO LOG
     private void updateLog(String mensagem, TextArea logSaida){
-        String log = logSaida.getText();
-        if(log==null){
-            log=mensagem;
-        }else{
-            log = log + "\n" + mensagem;
+        try {
+            javaFxAuxSemaphore.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            String log = logSaida.getText();
+            if(log==null){
+                log=mensagem;
+            }else{
+                log = log + "\n" + mensagem;
+            }
+            logSaida.setText(log);
+            logSaida.appendText("");
+
+            javaFxAuxSemaphore.release();
         }
-        logSaida.setText(log);
-        logSaida.appendText("");
     }
 }
